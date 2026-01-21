@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CG — Reflexo e Transparência (WebGL/GLSL)</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #0b0f14;
+        color: #e6edf3;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+          Noto Sans, sans-serif;
+      }
+      #hud {
+        position: fixed;
+        inset: 12px auto auto 12px;
+        z-index: 10;
+        background: rgba(10, 14, 20, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 10px 12px;
+        backdrop-filter: blur(10px);
+        max-width: 420px;
+      }
+      #hud h1 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+      #hud .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 8px 0;
+      }
+      #hud label {
+        font-size: 12px;
+        opacity: 0.9;
+        min-width: 140px;
+      }
+      #hud input[type="range"] {
+        width: 220px;
+      }
+      #hud .hint {
+        font-size: 12px;
+        opacity: 0.85;
+        line-height: 1.35;
+      }
+      #start {
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e6edf3;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+      #start:active {
+        transform: translateY(1px);
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <h1>Reflexo + Transparência (multi-pass + Fresnel)</h1>
+      <div class="row">
+        <button id="start">Ativar mouse look</button>
+        <div style="font-size: 12px; opacity: 0.8">WASD / Space / Shift</div>
+      </div>
+      <div class="row">
+        <label for="opacity">Opacidade do vidro (uniform)</label>
+        <input id="opacity" type="range" min="0" max="1" step="0.01" value="0.45" />
+        <div id="opacityValue" style="width: 48px; font-size: 12px; opacity: 0.9">0.45</div>
+      </div>
+      <div class="row">
+        <label for="cubeOpacity">Transparência do cubo</label>
+        <input id="cubeOpacity" type="range" min="0" max="1" step="0.01" value="1.0" />
+        <div id="cubeOpacityValue" style="width: 48px; font-size: 12px; opacity: 0.9">1.00</div>
+      </div>
+      <div class="hint">
+        - O reflexo é renderizado em um framebuffer (render target) a partir da cena (sem cubemap).<br />
+        - O plano usa clipping plane (sem “if” para filtrar objetos).<br />
+        - Shaders do “vidro” são autorais (GLSL).
+      </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="./main-app.js"></script>
+  </body>
+</html>
+

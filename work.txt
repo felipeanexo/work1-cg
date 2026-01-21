@@ -1,0 +1,45 @@
+Trabalho de Computação Gráfica — Reflexo e Transparência
+
+### Objetivo
+Desenvolver um efeito de reflexo e transparência em um plano utilizando WebGL/GLSL.
+O shader deve simular um material translúcido com reflexo (ex.: vidro escuro).
+
+### Requisitos técnicos (critérios de aceite)
+1) Shader customizado
+   - Implementação própria dos shaders vertex e fragment
+   - Reflexão e transparência calculadas com base no ângulo de visão
+   - Não usar texturas prontas para “fake” de reflexão/transparência
+
+2) Reflexo e transparência dinâmicos (multi-pass)
+   - Simular reflexo/transparência usando framebuffer renderizado a partir da cena
+   - Não usar cube map
+   - Renderização em vários passos (como no shadowmap)
+   - Permitido usar stencil buffer para transparência
+
+3) Transparência controlada
+   - Transparência ajustável via uniform
+
+4) Textura padrão obrigatória
+   - Todos os objetos devem possuir uma textura padrão (inclui o próprio “vidro”)
+
+5) Clipping plane
+   - Usar clipping plane
+   - Não é permitido selecionar por “if” quais objetos serão renderizados
+
+6) Câmera flyby
+   - Câmera com movimento flyby (permitido copiar da internet)
+
+### Entrega e demonstração
+- Demonstração em tempo real do shader aplicado em um plano dentro de uma cena contendo:
+  - Pelo menos dois objetos
+  - O plano dividindo os objetos
+
+### Checklist rápido (para você validar antes de entregar)
+- [ ] Vertex + fragment shaders são 100% autorais
+- [ ] Reflexo/transparência variam com o ângulo de visão (ex.: Fresnel/ângulo de incidência)
+- [ ] Reflexo/transparência vêm de um framebuffer da cena (multi-pass), sem cubemap
+- [ ] Transparência é controlada por uniform
+- [ ] Todos os objetos (incluindo o plano/vidro) têm textura padrão
+- [ ] Clipping plane ativo e sem “if” para filtrar objetos
+- [ ] Câmera flyby funcionando
+- [ ] Cena tem 2+ objetos e o plano divide os objetos visualmente
