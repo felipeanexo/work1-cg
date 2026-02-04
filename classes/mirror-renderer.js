@@ -59,8 +59,9 @@ export class MirrorRenderer {
   renderReflection(materials) {
     this.updateMirrorCamera();
 
+    // Three.js discards fragments on the "positive" side of the plane (normal direction).
+    // So we keep the side opposite to `planeNormal` and clip away the side pointed by it.
     const clipForMirror = this.clippingPlane.clone();
-    clipForMirror.constant = -clipForMirror.constant;
 
     const prevTarget = this.renderer.getRenderTarget();
     const prevVis = this.hiddenMeshes.map((m) => m.visible);

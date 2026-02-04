@@ -29,35 +29,45 @@ const lights = setupLights(scene);
 
 let sceneManager;
 let cameraController;
-let mirrorRenderer;
-let mirrorRendererBack;
-let glassMesh;
-let glassUniforms;
-let cubeMaterial;
+let mirrorRendererA;
+let mirrorRendererB;
+let mirrorMesh;
+let mirrorUniforms;
+let mirrorMaterial;
 
 async function init() {
-  const [phongShaders, glassShaders, mirrorShaders] = await Promise.all([
+  const [phongShaders, glassShaders, floorTexture, glassTexture] = await Promise.all([
     loadShaders("./shaders/phong.vert", "./shaders/phong.frag"),
     loadShaders("./shaders/glass.vert", "./shaders/glass.frag"),
-    loadShaders("./shaders/mirror.vert", "./shaders/mirror.frag"),
+    new THREE.TextureLoader().loadAsync("./textures/floor.jpg"),
+    new THREE.TextureLoader().loadAsync("./textures/glass.jpg"),
   ]);
+
+  floorTexture.colorSpace = THREE.SRGBColorSpace;
+  floorTexture.wrapS = THREE.RepeatWrapping;
+  floorTexture.wrapT = THREE.RepeatWrapping;
+  floorTexture.repeat.set(6, 6);
+  floorTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+  glassTexture.colorSpace = THREE.SRGBColorSpace;
+  glassTexture.wrapS = THREE.RepeatWrapping;
+  glassTexture.wrapT = THREE.RepeatWrapping;
+  glassTexture.repeat.set(1, 1);
+  glassTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
   sceneManager = new SceneManager(
     scene,
     renderer,
     lights,
     defaultTexture,
+    floorTexture,
     phongShaders.vertex,
     phongShaders.fragment,
   );
-  
-  cubeMaterial = sceneManager.cube.material;
 
-  const glassPoint = new THREE.Vector3(0.0, 0.85, 1.3);
-  const glassNormal = new THREE.Vector3(0, 0, -1);
-
-  const mirrorPoint = new THREE.Vector3(2.8, 0.85, 0.0);
-  const mirrorNormal = new THREE.Vector3(-1, 0, 0);
+  const mirrorPoint = new THREE.Vector3(0.0, 0.9, 0.0);
+  const mirrorNormal = new THREE.Vector3(0, 0, 1);
+  const thickness = 0.08;
 
   const dummyTexture = new THREE.DataTexture(
     new Uint8Array([0, 0, 0, 255]),
@@ -67,74 +77,50 @@ async function init() {
   );
   dummyTexture.needsUpdate = true;
 
-  glassUniforms = {
-    uBaseTex: { value: defaultTexture },
-    uReflectionTex: { value: dummyTexture },
+  mirrorUniforms = {
+    uBaseTex: { value: glassTexture },
+    uReflectionTexA: { value: dummyTexture },
+    uReflectionTexB: { value: dummyTexture },
     uMirrorVP: { value: new THREE.Matrix4() },
     uCameraPos: { value: new THREE.Vector3() },
-    uOpacity: { value: 0.45 },
-    uTint: { value: new THREE.Color(0x0f1a22) },
+    uOpacity: { value: 0.85 },
+    uTint: { value: new THREE.Color(0xc9d6e3) },
+    uMirrorNormal: { value: mirrorNormal.clone().normalize() },
   };
 
-  const glassMaterial = new THREE.ShaderMaterial({
+  mirrorMaterial = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    uniforms: glassUniforms,
+    side: THREE.DoubleSide,
+    uniforms: mirrorUniforms,
     vertexShader: glassShaders.vertex,
     fragmentShader: glassShaders.fragment,
     clippingPlanes: [],
   });
 
-  const glassPlane = new THREE.PlaneGeometry(2.2, 2.2, 1, 1);
-  glassMesh = new THREE.Mesh(glassPlane, glassMaterial);
-  glassMesh.position.copy(glassPoint);
-  glassMesh.rotation.y = 0;
-  scene.add(glassMesh);
-
-  const mirrorUniforms = {
-    uReflectionTex: { value: dummyTexture },
-    uReflectionTexBack: { value: dummyTexture },
-    uMirrorVP: { value: new THREE.Matrix4() },
-    uMirrorVPBack: { value: new THREE.Matrix4() },
-    uTint: { value: new THREE.Color(0x0b0f14) },
-    uReflectStrength: { value: 1.0 },
-    uSide: { value: 0.0 },
-  };
-
-  const mirrorMaterial = new THREE.ShaderMaterial({
-    transparent: false,
-    depthWrite: true,
-    uniforms: mirrorUniforms,
-    vertexShader: mirrorShaders.vertex,
-    fragmentShader: mirrorShaders.fragment,
-  });
-
-  const mirrorPlane = new THREE.PlaneGeometry(2.2, 2.2, 1, 1);
-  const mirrorMesh = new THREE.Mesh(mirrorPlane, mirrorMaterial);
+  mirrorMesh = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, thickness), mirrorMaterial);
   mirrorMesh.position.copy(mirrorPoint);
-  mirrorMesh.rotation.y = Math.PI / 2;
   scene.add(mirrorMesh);
 
-  const mirrorNormalBack = new THREE.Vector3(1, 0, 0);
-
-  mirrorRenderer = new MirrorRenderer(
+  // Render two reflection textures, one for each side of the mirror plane.
+  mirrorRendererA = new MirrorRenderer(
     renderer,
     scene,
     camera,
     mirrorMesh,
     mirrorPoint,
-    mirrorNormal,
-    [glassMesh, mirrorMesh],
+    new THREE.Vector3(0, 0, -1),
+    [mirrorMesh],
   );
 
-  mirrorRendererBack = new MirrorRenderer(
+  mirrorRendererB = new MirrorRenderer(
     renderer,
     scene,
     camera,
     mirrorMesh,
     mirrorPoint,
-    mirrorNormalBack,
-    [glassMesh, mirrorMesh],
+    new THREE.Vector3(0, 0, 1),
+    [mirrorMesh],
   );
 
   cameraController = new CameraController(camera, canvas);
@@ -148,24 +134,15 @@ async function init() {
 
   const opacityEl = document.getElementById("opacity");
   const opacityValueEl = document.getElementById("opacityValue");
-  if (opacityEl) {
+  if (opacityEl && mirrorMaterial) {
     opacityEl.addEventListener("input", () => {
       const v = Number(opacityEl.value);
-      glassUniforms.uOpacity.value = v;
+      mirrorUniforms.uOpacity.value = v;
+      const opaque = v >= 0.999;
+      mirrorMaterial.transparent = !opaque;
+      mirrorMaterial.depthWrite = opaque;
+      mirrorMaterial.needsUpdate = true;
       if (opacityValueEl) opacityValueEl.textContent = v.toFixed(2);
-    });
-  }
-
-  const cubeOpacityEl = document.getElementById("cubeOpacity");
-  const cubeOpacityValueEl = document.getElementById("cubeOpacityValue");
-  if (cubeOpacityEl && cubeMaterial) {
-    cubeOpacityEl.addEventListener("input", () => {
-      const v = Number(cubeOpacityEl.value);
-      cubeMaterial.uniforms.uOpacity.value = v;
-      cubeMaterial.transparent = v < 1.0;
-      cubeMaterial.depthWrite = v >= 1.0;
-      cubeMaterial.needsUpdate = true;
-      if (cubeOpacityValueEl) cubeOpacityValueEl.textContent = v.toFixed(2);
     });
   }
 
@@ -175,8 +152,8 @@ async function init() {
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    mirrorRenderer.resize(w, h);
-    mirrorRendererBack.resize(w, h);
+    mirrorRendererA.resize(w, h);
+    mirrorRendererB.resize(w, h);
   });
 
   requestAnimationFrame(animate);
@@ -185,7 +162,7 @@ async function init() {
 let lastTime = performance.now();
 
 function animate() {
-  if (!sceneManager || !cameraController || !mirrorRenderer || !mirrorRendererBack || !glassUniforms) {
+  if (!sceneManager || !cameraController || !mirrorRendererA || !mirrorRendererB || !mirrorUniforms) {
     requestAnimationFrame(animate);
     return;
   }
@@ -198,20 +175,13 @@ function animate() {
   sceneManager.updateObjects(deltaTime);
   sceneManager.updateLightUniforms(camera.position);
 
-  const reflectionData = mirrorRenderer.renderReflection(sceneManager.materials);
-  const reflectionDataBack = mirrorRendererBack.renderReflection(sceneManager.materials);
+  const reflectionA = mirrorRendererA.renderReflection(sceneManager.materials);
+  const reflectionB = mirrorRendererB.renderReflection(sceneManager.materials);
 
-  glassUniforms.uReflectionTex.value = reflectionData.texture;
-  glassUniforms.uMirrorVP.value.copy(reflectionData.viewProjectionMatrix);
-  glassUniforms.uCameraPos.value.copy(camera.position);
-
-  const mirrorMat = mirrorRenderer.mirrorMesh?.material;
-  if (mirrorMat?.uniforms) {
-    mirrorMat.uniforms.uReflectionTex.value = reflectionData.texture;
-    mirrorMat.uniforms.uMirrorVP.value.copy(reflectionData.viewProjectionMatrix);
-    mirrorMat.uniforms.uReflectionTexBack.value = reflectionDataBack.texture;
-    mirrorMat.uniforms.uMirrorVPBack.value.copy(reflectionDataBack.viewProjectionMatrix);
-  }
+  mirrorUniforms.uReflectionTexA.value = reflectionA.texture;
+  mirrorUniforms.uReflectionTexB.value = reflectionB.texture;
+  mirrorUniforms.uMirrorVP.value.copy(reflectionA.viewProjectionMatrix);
+  mirrorUniforms.uCameraPos.value.copy(camera.position);
 
   renderer.render(scene, camera);
   requestAnimationFrame(animate);

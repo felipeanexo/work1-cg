@@ -1,6 +1,6 @@
 # Trabalho CG — Reflexo e Transparência (WebGL/GLSL)
 
-Implementação modular do enunciado usando WebGL via Three.js, com shaders GLSL autorais (Phong para objetos e Fresnel para o vidro), renderização em múltiplos passes (framebuffer/render target), iluminação própria e reflexo dinâmico.
+Implementação modular do enunciado usando WebGL via Three.js, com shaders GLSL autorais (Phong para objetos e Fresnel/reflexo para o material do espelho), renderização em múltiplos passes (framebuffer/render target), iluminação própria e reflexo dinâmico.
 
 ## Estrutura do Projeto
 
@@ -12,8 +12,8 @@ work1/
 ├── shaders/
 │   ├── phong.vert         # Vertex shader Phong (objetos)
 │   ├── phong.frag         # Fragment shader Phong (iluminação)
-│   ├── glass.vert         # Vertex shader do vidro
-│   └── glass.frag         # Fragment shader do vidro (Fresnel + reflexo)
+│   ├── glass.vert         # Vertex shader do espelho (nome legado)
+│   └── glass.frag         # Fragment shader do espelho (Fresnel + reflexo 2 lados)
 ├── classes/
 │   ├── camera-controller.js    # Controle de câmera flyby
 │   ├── mirror-renderer.js      # Renderização multi-pass do reflexo
@@ -52,20 +52,20 @@ Abra no navegador: `http://localhost:8088`
 - **WASD**: mover
 - **Space**: subir
 - **Shift**: descer / movimento mais rápido
-- **Slider**: controla a transparência (uniform `uOpacity`)
+- **Slider**: controla a opacidade do espelho (uniform `uOpacity`)
 
 ## Características Técnicas
 
 ### Shaders Autorais
 
 - **Phong Shader** (`shaders/phong.*`): Iluminação Phong completa (ambient + diffuse + specular) para todos os objetos
-- **Glass Shader** (`shaders/glass.*`): Efeito de vidro com Fresnel e reflexo dinâmico
+- **Mirror Shader** (`shaders/glass.*`): Espelho translúcido com Fresnel e reflexo dinâmico (2 lados)
 
 ### Renderização Multi-Pass
 
-1. **Pass 1 (Reflexo)**: Renderiza a cena no framebuffer usando câmera espelhada com clipping plane invertido
-2. **Pass 2 (Principal)**: Renderiza a cena normal com clipping plane padrão
-3. O shader do vidro amostra o framebuffer do Pass 1 para o reflexo
+1. **Pass 1/2 (Reflexos)**: Renderiza a cena em 2 framebuffers (um por lado do plano) usando câmera espelhada + clipping plane
+2. **Pass 3 (Principal)**: Renderiza a cena normal
+3. O shader do espelho amostra os framebuffers para o reflexo de cada face
 
 ### Iluminação
 
@@ -90,6 +90,7 @@ Abra no navegador: `http://localhost:8088`
 ✅ **Câmera flyby**: Mouse look + WASD/Space/Shift  
 ✅ **Iluminação própria**: Shader Phong autoral (não usa MeshStandardMaterial)  
 ✅ **Sombreamento**: Cálculo completo de Phong (ambient + diffuse + specular)
+✅ **Cena com 2+ objetos**: Cubo + esfera em lados opostos do plano
 
 ## Estrutura Modular
 

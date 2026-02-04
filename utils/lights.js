@@ -1,10 +1,10 @@
 import * as THREE from "three";
 
 export function setupLights(scene) {
-  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
   scene.add(ambient);
 
-  const directional = new THREE.DirectionalLight(0xffffff, 1.2);
+  const directional = new THREE.DirectionalLight(0xffffff, 1.8);
   directional.position.set(5, 8, 4);
   scene.add(directional);
 

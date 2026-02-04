@@ -1,12 +1,13 @@
 import * as THREE from "three";
 
 export class SceneManager {
-  constructor(scene, renderer, lights, defaultTexture, phongVertexShader, phongFragmentShader) {
+  constructor(scene, renderer, lights, defaultTexture, floorTexture, phongVertexShader, phongFragmentShader) {
     this.scene = scene;
     this.scene.fog = new THREE.Fog(0x0b0f14, 6, 36);
     this.renderer = renderer;
     this.lights = lights;
     this.defaultTexture = defaultTexture;
+    this.floorTexture = floorTexture ?? defaultTexture;
     this.materials = [];
     this.objects = [];
     this.phongVertexShader = phongVertexShader;
@@ -25,7 +26,7 @@ export class SceneManager {
   }
 
   createFloor() {
-    const material = this.createPhongMaterial(0xffffff, 0.95, 0.0, 32.0, 0.3);
+    const material = this.createPhongMaterial(0xffffff, 0.95, 0.0, 32.0, 0.3, 1.0, this.floorTexture);
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), material);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
@@ -33,9 +34,9 @@ export class SceneManager {
     this.materials.push(material);
   }
 
-  createPhongMaterial(color, roughness, metalness, shininess, specularStrength, opacity = 1.0) {
+  createPhongMaterial(color, roughness, metalness, shininess, specularStrength, opacity = 1.0, texture = null) {
     const uniforms = {
-      uTexture: { value: this.defaultTexture },
+      uTexture: { value: texture ?? this.defaultTexture },
       uMaterialColor: { value: new THREE.Color(color) },
       uShininess: { value: shininess },
       uSpecularStrength: { value: specularStrength },
@@ -74,24 +75,19 @@ export class SceneManager {
   }
 
   createObjects() {
-    const cube = this.createBox(0, 0, 0xffd2a8, 0.55, 0.05, 64.0, 0.8, 1.0);
-    this.scene.add(cube);
-    this.objects.push({ mesh: cube, rotationSpeed: 0.6 });
-    this.cube = cube;
+    const cubeA = this.createBox(0.0, 2.6, 0xffd2a8, 0.55, 0.05, 64.0, 0.8, 1.0);
+    this.scene.add(cubeA);
+    this.objects.push({ mesh: cubeA, rotationSpeed: 0.6 });
+
+    const cubeB = this.createBox(0.0, -2.6, 0x8fd3ff, 0.55, 0.05, 64.0, 0.8, 1.0);
+    this.scene.add(cubeB);
+    this.objects.push({ mesh: cubeB, rotationSpeed: -0.45 });
   }
 
   createBox(x, z, color, roughness, metalness, shininess, specularStrength, opacity = 1.0) {
     const material = this.createPhongMaterial(color, roughness, metalness, shininess, specularStrength, opacity);
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), material);
     mesh.position.set(x, 0.7, z);
-    this.materials.push(material);
-    return mesh;
-  }
-
-  createSphere(x, y, z, color, roughness, metalness, shininess, specularStrength) {
-    const material = this.createPhongMaterial(color, roughness, metalness, shininess, specularStrength);
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.85, 48, 32), material);
-    mesh.position.set(x, y, z);
     this.materials.push(material);
     return mesh;
   }
