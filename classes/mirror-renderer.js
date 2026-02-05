@@ -59,18 +59,24 @@ export class MirrorRenderer {
   renderReflection(materials) {
     this.updateMirrorCamera();
 
-    // Three.js discards fragments on the "positive" side of the plane (normal direction).
-    // So we keep the side opposite to `planeNormal` and clip away the side pointed by it.
-    const clipForMirror = this.clippingPlane.clone();
-
     const prevTarget = this.renderer.getRenderTarget();
     const prevVis = this.hiddenMeshes.map((m) => m.visible);
     this.hiddenMeshes.forEach((m) => {
       m.visible = false;
     });
 
+    const plane = this.clippingPlane;
+    const planeVec4 = new THREE.Vector4(
+      plane.normal.x,
+      plane.normal.y,
+      plane.normal.z,
+      plane.constant,
+    );
+
     materials.forEach((mat) => {
-      mat.clippingPlanes = [clipForMirror];
+      if (!mat?.uniforms) return;
+      if (mat.uniforms.uClipPlane) mat.uniforms.uClipPlane.value.copy(planeVec4);
+      if (mat.uniforms.uClipActive) mat.uniforms.uClipActive.value = 1.0;
     });
 
     this.renderer.setRenderTarget(this.renderTarget);
@@ -78,7 +84,8 @@ export class MirrorRenderer {
     this.renderer.render(this.scene, this.mirrorCamera);
 
     materials.forEach((mat) => {
-      mat.clippingPlanes = [];
+      if (!mat?.uniforms) return;
+      if (mat.uniforms.uClipActive) mat.uniforms.uClipActive.value = 0.0;
     });
 
     this.renderer.setRenderTarget(prevTarget);

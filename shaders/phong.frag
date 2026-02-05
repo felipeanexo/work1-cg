@@ -9,12 +9,19 @@ uniform vec3 uMaterialColor;
 uniform float uShininess;
 uniform float uSpecularStrength;
 uniform float uOpacity;
+uniform vec4 uClipPlane;
+uniform float uClipActive;
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
 varying vec2 vUv;
 
 void main() {
+  if (uClipActive > 0.5) {
+    float d = dot(vec4(vWorldPosition, 1.0), uClipPlane);
+    if (d > 0.0) discard;
+  }
+
   vec3 N = normalize(vWorldNormal);
   vec3 L = normalize(uLightDirection);
   vec3 V = normalize(uCameraPosition - vWorldPosition);

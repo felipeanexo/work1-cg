@@ -30,10 +30,11 @@ const lights = setupLights(scene);
 let sceneManager;
 let cameraController;
 let mirrorRendererA;
-let mirrorRendererB;
 let mirrorMesh;
 let mirrorUniforms;
 let mirrorMaterial;
+let cubeMinDist;
+let cubeMaxDist;
 
 async function init() {
   const [phongShaders, glassShaders, floorTexture, glassTexture] = await Promise.all([
@@ -79,8 +80,7 @@ async function init() {
 
   mirrorUniforms = {
     uBaseTex: { value: glassTexture },
-    uReflectionTexA: { value: dummyTexture },
-    uReflectionTexB: { value: dummyTexture },
+    uReflectionTex: { value: dummyTexture },
     uMirrorVP: { value: new THREE.Matrix4() },
     uCameraPos: { value: new THREE.Vector3() },
     uOpacity: { value: 0.85 },
@@ -92,17 +92,26 @@ async function init() {
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
+    premultipliedAlpha: true,
     uniforms: mirrorUniforms,
     vertexShader: glassShaders.vertex,
     fragmentShader: glassShaders.fragment,
     clippingPlanes: [],
   });
 
-  mirrorMesh = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, thickness), mirrorMaterial);
+  mirrorMesh = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.6, thickness), mirrorMaterial);
   mirrorMesh.position.copy(mirrorPoint);
   scene.add(mirrorMesh);
 
-  // Render two reflection textures, one for each side of the mirror plane.
+  // Keep the orange cube on the +Z side, allowing it to touch the slab but not cross it.
+  // cube size is 1.4 -> half is 0.7
+  cubeMinDist = thickness * 0.5 + 0.7 + 0.02;
+  cubeMaxDist = 5.0;
+  if (sceneManager.cubeOrange) {
+    sceneManager.cubeOrange.position.z = Math.max(cubeMinDist, Math.min(cubeMaxDist, sceneManager.cubeOrange.position.z));
+  }
+
+  // Render one reflection texture (orange side only).
   mirrorRendererA = new MirrorRenderer(
     renderer,
     scene,
@@ -110,16 +119,6 @@ async function init() {
     mirrorMesh,
     mirrorPoint,
     new THREE.Vector3(0, 0, -1),
-    [mirrorMesh],
-  );
-
-  mirrorRendererB = new MirrorRenderer(
-    renderer,
-    scene,
-    camera,
-    mirrorMesh,
-    mirrorPoint,
-    new THREE.Vector3(0, 0, 1),
     [mirrorMesh],
   );
 
@@ -137,12 +136,27 @@ async function init() {
   if (opacityEl && mirrorMaterial) {
     opacityEl.addEventListener("input", () => {
       const v = Number(opacityEl.value);
-      mirrorUniforms.uOpacity.value = v;
-      const opaque = v >= 0.999;
-      mirrorMaterial.transparent = !opaque;
-      mirrorMaterial.depthWrite = opaque;
-      mirrorMaterial.needsUpdate = true;
-      if (opacityValueEl) opacityValueEl.textContent = v.toFixed(2);
+      const opacity = 1.0 - v / 100.0;
+      mirrorUniforms.uOpacity.value = opacity;
+      if (opacityValueEl) opacityValueEl.textContent = `${Math.round(v)}%`;
+    });
+  }
+
+  const cubeDistEl = document.getElementById("cubeDistance");
+  const cubeDistValueEl = document.getElementById("cubeDistanceValue");
+  if (cubeDistEl && sceneManager?.cubeOrange) {
+    const setDist = (dist) => {
+      const clamped = Math.max(cubeMinDist, Math.min(cubeMaxDist, dist));
+      sceneManager.cubeOrange.position.z = clamped;
+      if (cubeDistValueEl) cubeDistValueEl.textContent = clamped.toFixed(2);
+    };
+    // initialize UI limits and value
+    cubeDistEl.min = cubeMinDist.toFixed(2);
+    cubeDistEl.max = cubeMaxDist.toFixed(2);
+    cubeDistEl.step = "0.01";
+    setDist(Number(cubeDistEl.value || sceneManager.cubeOrange.position.z));
+    cubeDistEl.addEventListener("input", () => {
+      setDist(Number(cubeDistEl.value));
     });
   }
 
@@ -153,7 +167,6 @@ async function init() {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     mirrorRendererA.resize(w, h);
-    mirrorRendererB.resize(w, h);
   });
 
   requestAnimationFrame(animate);
@@ -162,7 +175,7 @@ async function init() {
 let lastTime = performance.now();
 
 function animate() {
-  if (!sceneManager || !cameraController || !mirrorRendererA || !mirrorRendererB || !mirrorUniforms) {
+  if (!sceneManager || !cameraController || !mirrorRendererA || !mirrorUniforms) {
     requestAnimationFrame(animate);
     return;
   }
@@ -176,10 +189,8 @@ function animate() {
   sceneManager.updateLightUniforms(camera.position);
 
   const reflectionA = mirrorRendererA.renderReflection(sceneManager.materials);
-  const reflectionB = mirrorRendererB.renderReflection(sceneManager.materials);
 
-  mirrorUniforms.uReflectionTexA.value = reflectionA.texture;
-  mirrorUniforms.uReflectionTexB.value = reflectionB.texture;
+  mirrorUniforms.uReflectionTex.value = reflectionA.texture;
   mirrorUniforms.uMirrorVP.value.copy(reflectionA.viewProjectionMatrix);
   mirrorUniforms.uCameraPos.value.copy(camera.position);
 

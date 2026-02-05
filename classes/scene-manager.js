@@ -41,6 +41,9 @@ export class SceneManager {
       uShininess: { value: shininess },
       uSpecularStrength: { value: specularStrength },
       uOpacity: { value: opacity },
+      // Clipping plane (world-space): dot(vec4(worldPos,1), uClipPlane) > 0 gets discarded.
+      uClipPlane: { value: new THREE.Vector4(0, 0, 0, -1e9) },
+      uClipActive: { value: 0.0 },
       ...this.getLightUniforms(),
     };
 
@@ -78,10 +81,11 @@ export class SceneManager {
     const cubeA = this.createBox(0.0, 2.6, 0xffd2a8, 0.55, 0.05, 64.0, 0.8, 1.0);
     this.scene.add(cubeA);
     this.objects.push({ mesh: cubeA, rotationSpeed: 0.6 });
+    this.cubeOrange = cubeA;
 
     const cubeB = this.createBox(0.0, -2.6, 0x8fd3ff, 0.55, 0.05, 64.0, 0.8, 1.0);
     this.scene.add(cubeB);
-    this.objects.push({ mesh: cubeB, rotationSpeed: -0.45 });
+    this.cubeBlue = cubeB;
   }
 
   createBox(x, z, color, roughness, metalness, shininess, specularStrength, opacity = 1.0) {

@@ -76,15 +76,16 @@
         <div style="font-size: 12px; opacity: 0.8">WASD / Space / Shift</div>
       </div>
       <div class="row">
-        <label for="opacity">Opacidade do espelho (uniform)</label>
-        <input id="opacity" type="range" min="0" max="1" step="0.01" value="0.85" />
-        <div id="opacityValue" style="width: 48px; font-size: 12px; opacity: 0.9">0.85</div>
+        <label for="opacity">Transparência do espelho</label>
+        <input id="opacity" type="range" min="0" max="100" step="1" value="15" />
+        <div id="opacityValue" style="width: 48px; font-size: 12px; opacity: 0.9">15%</div>
       </div>
-      <div class="hint">
-        - O reflexo é renderizado em um framebuffer (render target) a partir da cena (sem cubemap).<br />
-        - O plano usa clipping plane (sem “if” para filtrar objetos).<br />
-        - Shaders do material do espelho são autorais (GLSL).
+      <div class="row">
+        <label for="cubeDistance">Cube Distance from Plane</label>
+        <input id="cubeDistance" type="range" min="0.76" max="5.00" step="0.01" value="2.60" />
+        <div id="cubeDistanceValue" style="width: 48px; font-size: 12px; opacity: 0.9">2.60</div>
       </div>
+      <!-- hint removed (per request) -->
     </div>
 
     <script type="importmap">
