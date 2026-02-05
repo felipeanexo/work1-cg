@@ -69,6 +69,7 @@ async function init() {
   const mirrorPoint = new THREE.Vector3(0.0, 0.9, 0.0);
   const mirrorNormal = new THREE.Vector3(0, 0, 1);
   const thickness = 0.08;
+  const reflectPlanePoint = mirrorPoint.clone().addScaledVector(mirrorNormal, thickness * 0.5);
 
   const dummyTexture = new THREE.DataTexture(
     new Uint8Array([0, 0, 0, 255]),
@@ -92,7 +93,6 @@ async function init() {
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
-    premultipliedAlpha: true,
     uniforms: mirrorUniforms,
     vertexShader: glassShaders.vertex,
     fragmentShader: glassShaders.fragment,
@@ -117,7 +117,7 @@ async function init() {
     scene,
     camera,
     mirrorMesh,
-    mirrorPoint,
+    reflectPlanePoint,
     new THREE.Vector3(0, 0, -1),
     [mirrorMesh],
   );
@@ -138,6 +138,10 @@ async function init() {
       const v = Number(opacityEl.value);
       const opacity = 1.0 - v / 100.0;
       mirrorUniforms.uOpacity.value = opacity;
+      const opaque = opacity >= 0.999;
+      mirrorMaterial.transparent = !opaque;
+      mirrorMaterial.depthWrite = opaque;
+      mirrorMaterial.needsUpdate = true;
       if (opacityValueEl) opacityValueEl.textContent = `${Math.round(v)}%`;
     });
   }
